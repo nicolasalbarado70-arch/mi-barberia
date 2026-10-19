@@ -1,0 +1,325 @@
+<!doctype html>
+<html lang="es">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+  <meta name="theme-color" content="#176b45">
+  <meta name="apple-mobile-web-app-capable" content="yes">
+  <meta name="apple-mobile-web-app-status-bar-style" content="default">
+  <meta name="apple-mobile-web-app-title" content="Mi Barbería">
+  <title>Mi Barbería</title>
+  <link rel="manifest" href="./manifest.webmanifest">
+  <link rel="apple-touch-icon" href="./icon-192.png">
+  <style>
+    :root { --green:#176b45; --green2:#e5f4eb; --ink:#18231d; --muted:#66736b; --line:#e1e8e3; --bg:#f5f8f6; --red:#b42318; }
+    * { box-sizing:border-box; }
+    body { margin:0; background:var(--bg); color:var(--ink); font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",sans-serif; }
+    button,input,select,textarea { font:inherit; }
+    button { cursor:pointer; }
+    .wrap { max-width:760px; margin:0 auto; padding: max(18px, env(safe-area-inset-top)) 16px 40px; }
+    header { display:flex; justify-content:space-between; align-items:center; gap:12px; margin-bottom:18px; }
+    h1 { font-size:26px; margin:0; letter-spacing:-.7px; }
+    .sub { color:var(--muted); font-size:13px; margin-top:4px; }
+    .pill { background:var(--green2); color:var(--green); padding:7px 10px; border-radius:99px; font-size:12px; font-weight:700; }
+    .card { background:#fff; border:1px solid var(--line); border-radius:18px; padding:16px; margin:12px 0; box-shadow:0 2px 10px #172b1d08; }
+    .stats { display:grid; grid-template-columns:repeat(2,minmax(0,1fr)); gap:10px; }
+    .stat { padding:14px; border-radius:15px; background:#fff; border:1px solid var(--line); }
+    .stat small { display:block; color:var(--muted); font-size:12px; margin-bottom:7px; }
+    .stat strong { font-size:21px; letter-spacing:-.5px; overflow-wrap:anywhere; }
+    .positive { color:var(--green); } .negative { color:var(--red); }
+    .tabs { display:flex; gap:8px; overflow:auto; padding:3px 0 7px; }
+    .tab { border:1px solid var(--line); background:white; border-radius:999px; padding:10px 14px; white-space:nowrap; color:var(--ink); }
+    .tab.active { background:var(--green); color:#fff; border-color:var(--green); }
+    h2 { font-size:17px; margin:0 0 13px; }
+    label { display:block; font-size:13px; color:var(--muted); margin:10px 0 6px; }
+    input,select,textarea { width:100%; padding:12px; border:1px solid #d5dfd8; border-radius:11px; background:white; color:var(--ink); }
+    textarea { resize:vertical; min-height:64px; }
+    .grid2 { display:grid; grid-template-columns:1fr 1fr; gap:10px; }
+    .btn { border:0; background:var(--green); color:white; padding:13px 15px; border-radius:12px; font-weight:750; width:100%; margin-top:12px; }
+    .btn.secondary { background:#eef3ef; color:var(--ink); border:1px solid var(--line); }
+    .btn.danger { background:#fff0ef; color:var(--red); border:1px solid #f5d1ce; }
+    .btn.small { width:auto; padding:8px 10px; margin:0; font-size:12px; }
+    .hidden { display:none !important; }
+    .row { display:flex; align-items:center; justify-content:space-between; gap:12px; }
+    .record { padding:13px 0; border-top:1px solid var(--line); }
+    .record:first-child { border-top:0; }
+    .record-title { font-weight:700; }
+    .record-meta { color:var(--muted); font-size:12px; margin-top:4px; }
+    .record-amount { font-weight:800; white-space:nowrap; }
+    .actions { display:flex; gap:6px; margin-top:8px; }
+    .note { color:var(--muted); font-size:12px; line-height:1.45; }
+    .notice { border-radius:12px; padding:11px 12px; background:#fff8e8; color:#75530a; font-size:13px; line-height:1.4; margin:10px 0; }
+    .error { color:var(--red); font-size:13px; margin-top:9px; }
+    .success { color:var(--green); font-size:13px; margin-top:9px; }
+    .empty { text-align:center; color:var(--muted); padding:24px 8px; }
+    .foot { text-align:center; color:var(--muted); font-size:11px; padding:16px 0; }
+    @media(min-width:600px) { .stats { grid-template-columns:repeat(4,minmax(0,1fr)); } }
+  </style>
+</head>
+<body>
+<div class="wrap">
+  <header>
+    <div><h1>✂️ Mi Barbería</h1><div class="sub">Tus cortes, tus gastos, tus números.</div></div>
+    <div class="pill" id="connection">Sin configurar</div>
+  </header>
+
+  <section id="setup" class="card hidden">
+    <h2>Conectar el guardado en la nube</h2>
+    <p class="note">Acá vas a pegar los dos datos públicos de tu proyecto Supabase. No pegues nunca una clave que diga <b>service_role</b> o <b>secret</b>.</p>
+    <form id="configForm">
+      <label for="projectUrl">Dirección del proyecto (Project URL)</label>
+      <input id="projectUrl" type="url" required placeholder="https://xxxxxxxx.supabase.co" autocapitalize="off" autocomplete="url">
+      <label for="anonKey">Clave pública (anon / publishable key)</label>
+      <textarea id="anonKey" required autocapitalize="off" autocomplete="off" placeholder="Pegá acá la clave pública"></textarea>
+      <button class="btn" type="submit">Guardar configuración</button>
+      <p class="note">La configuración queda guardada en este navegador. Los movimientos se guardan en Supabase, asociados a tu cuenta.</p>
+      <div id="configMsg" role="status"></div>
+    </form>
+  </section>
+  <section id="auth" class="card hidden">
+    <h2 id="authTitle">Entrar a Mi Barbería</h2>
+    <p class="note">Usá un correo tuyo y una contraseña segura. Tu cuenta permite recuperar los registros en otro dispositivo.</p>
+    <form id="authForm">
+      <label for="email">Correo electrónico</label><input id="email" type="email" autocomplete="email" required placeholder="vos@ejemplo.com">
+      <label for="password">Contraseña</label><input id="password" type="password" autocomplete="current-password" required minlength="8" placeholder="Mínimo 8 caracteres">
+      <button class="btn" id="authSubmit" type="submit">Entrar</button>
+    </form>
+    <button class="btn secondary" id="toggleAuth" type="button">Crear cuenta nueva</button>
+    <div id="authMsg" role="status"></div>
+  </section>
+
+  <main id="app" class="hidden">
+    <div class="row" style="margin:8px 0 12px">
+      <div class="note" id="userLabel"></div>
+      <button class="btn small secondary" id="logout" type="button">Cerrar sesión</button>
+    </div>
+    <div class="stats">
+      <div class="stat"><small>Ingresos del mes</small><strong class="positive" id="monthIncome">$0</strong></div>
+      <div class="stat"><small>Gastos del mes</small><strong class="negative" id="monthExpense">$0</strong></div>
+      <div class="stat"><small>Balance del mes</small><strong id="monthBalance">$0</strong></div>
+      <div class="stat"><small>Cortes este mes</small><strong id="monthCuts">0</strong></div>
+    </div>
+
+    <nav class="tabs" aria-label="Secciones" style="margin-top:15px">
+      <button class="tab active" data-tab="income">Registrar corte</button>
+      <button class="tab" data-tab="expense">Registrar gasto</button>
+      <button class="tab" data-tab="history">Movimientos</button>
+      <button class="tab" data-tab="backup">Respaldo</button>
+    </nav>
+
+    <section class="card panel" id="panel-income">
+      <h2>Nuevo corte</h2>
+      <form id="incomeForm">
+        <label for="incomeAmount">Importe ($)</label><input id="incomeAmount" type="number" inputmode="decimal" min="1" step="1" value="12000" required>
+        <div class="grid2">
+          <div><label for="incomeDate">Fecha</label><input id="incomeDate" type="date" required></div>
+          <div><label for="incomeNote">Nota (opcional)</label><input id="incomeNote" maxlength="120" placeholder="Ej. corte + barba"></div>
+        </div>
+        <button class="btn" type="submit">＋ Guardar corte</button>
+        <div class="note" style="margin-top:9px">El importe queda guardado en tu cuenta cuando confirmamos el registro.</div>
+      </form>
+    </section>
+
+    <section class="card panel hidden" id="panel-expense">
+      <h2>Nuevo gasto de barbería</h2>
+      <form id="expenseForm">
+        <label for="expenseAmount">Importe ($)</label><input id="expenseAmount" type="number" inputmode="decimal" min="1" step="1" required placeholder="Ej. 8500">
+        <div class="grid2">
+          <div><label for="expenseDate">Fecha</label><input id="expenseDate" type="date" required></div>
+          <div><label for="expenseCategory">Categoría</label><select id="expenseCategory"><option>Productos</option><option>Herramientas</option><option>Mantenimiento</option><option>Alquiler</option><option>Servicios</option><option>Comisiones / cobros</option><option>Otros</option></select></div>
+        </div>
+        <label for="expenseNote">Detalle (opcional)</label><input id="expenseNote" maxlength="120" placeholder="Ej. talco, navajas, máquinas">
+        <button class="btn" type="submit">＋ Guardar gasto</button>
+      </form>
+    </section>
+
+    <section class="card panel hidden" id="panel-history">
+      <div class="row"><h2 style="margin:0">Movimientos</h2><button class="btn small secondary" id="refresh" type="button">Actualizar</button></div>
+      <div class="grid2">
+        <div><label for="filterPeriod">Período</label><select id="filterPeriod"><option value="month">Este mes</option><option value="7">Últimos 7 días</option><option value="all">Todo</option></select></div>
+        <div><label for="filterType">Tipo</label><select id="filterType"><option value="all">Todos</option><option value="income">Ingresos</option><option value="expense">Gastos</option></select></div>
+      </div>
+      <div id="records" style="margin-top:12px"></div>
+    </section>
+
+    <section class="card panel hidden" id="panel-backup">
+      <h2>Respaldo de datos</h2>
+      <p class="note">Descargá una copia en formato JSON para guardar todos tus movimientos, o un CSV para abrirlos en Numbers o Excel. El respaldo no reemplaza el guardado en la nube.</p>
+      <button class="btn" id="exportJson" type="button">Descargar copia completa (JSON)</button>
+      <button class="btn secondary" id="exportCsv" type="button">Descargar movimientos (CSV)</button>
+      <button class="btn secondary" id="refreshBackup" type="button">Actualizar datos antes de exportar</button>
+      <div id="backupMsg" class="note" style="margin-top:10px"></div>
+    </section>
+    <div id="appMsg" role="status"></div>
+  </main>
+  <div class="foot">Mi Barbería · Guardado asociado a tu cuenta</div>
+</div>
+
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+<script>
+(() => {
+  const $ = id => document.getElementById(id);
+  let SUPABASE_URL = localStorage.getItem('mb_supabase_url') || '';
+  let SUPABASE_ANON_KEY = localStorage.getItem('mb_supabase_anon_key') || '';
+  const today = new Date();
+  const localDate = `${today.getFullYear()}-${String(today.getMonth()+1).padStart(2,'0')}-${String(today.getDate()).padStart(2,'0')}`;
+  $('incomeDate').value = localDate; $('expenseDate').value = localDate;
+  let client = null, currentUser = null, authMode = 'login', movements = [];
+
+  function money(n) { return new Intl.NumberFormat('es-AR',{style:'currency',currency:'ARS',maximumFractionDigits:0}).format(Number(n||0)); }
+  function escapeHtml(s) { return String(s ?? '').replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c])); }
+  function setMsg(el, text, kind='') { el.className = kind; el.textContent = text; }
+  function showAuth() { $('auth').classList.remove('hidden'); $('app').classList.add('hidden'); }
+  function showApp() { $('auth').classList.add('hidden'); $('setup').classList.add('hidden'); $('app').classList.remove('hidden'); $('userLabel').textContent = currentUser?.email || 'Sesión iniciada'; }
+  function isConfigured() { return SUPABASE_URL.startsWith('https://') && SUPABASE_ANON_KEY.length > 20; }
+  function validConfig() { return isConfigured() && window.supabase?.createClient; }
+
+  function startClient() {
+    if (!validConfig()) {
+      $('setup').classList.remove('hidden'); $('auth').classList.add('hidden'); $('app').classList.add('hidden');
+      $('connection').textContent='Falta configurar'; $('connection').style.background='#fff0d5'; $('connection').style.color='#75530a';
+      $('projectUrl').value = SUPABASE_URL; $('anonKey').value = SUPABASE_ANON_KEY;
+      return;
+    }
+    $('setup').classList.add('hidden');
+    client = window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
+    $('connection').textContent='Nube conectada';
+    $('toggleAuth').addEventListener('click', () => {
+      authMode = authMode === 'login' ? 'signup' : 'login';
+      $('authTitle').textContent = authMode === 'login' ? 'Entrar a Mi Barbería' : 'Crear cuenta';
+      $('authSubmit').textContent = authMode === 'login' ? 'Entrar' : 'Crear cuenta';
+      $('toggleAuth').textContent = authMode === 'login' ? 'Crear cuenta nueva' : 'Ya tengo cuenta';
+      $('password').autocomplete = authMode === 'login' ? 'current-password' : 'new-password';
+      setMsg($('authMsg'),'');
+    });
+    $('authForm').addEventListener('submit', async e => {
+      e.preventDefault(); setMsg($('authMsg'),'Conectando…');
+      const email = $('email').value.trim(), password = $('password').value;
+      try {
+        let result = authMode === 'login'
+          ? await client.auth.signInWithPassword({email,password})
+          : await client.auth.signUp({email,password});
+        if (result.error) throw result.error;
+        if (authMode === 'signup' && !result.data.session) {
+          setMsg($('authMsg'),'Cuenta creada. Revisá tu correo para confirmar la dirección y después iniciá sesión.','success');
+          return;
+        }
+        currentUser = result.data.user; await afterLogin();
+      } catch(err) { setMsg($('authMsg'),err.message || 'No se pudo iniciar sesión.','error'); }
+    });
+    $('logout').addEventListener('click', async () => { await client.auth.signOut(); currentUser=null; movements=[]; showAuth(); $('connection').textContent='Nube conectada'; });
+    client.auth.onAuthStateChange((_event, session) => {
+      currentUser = session?.user || null;
+      if (currentUser) { showApp(); setTimeout(() => loadMovements().catch(showError), 0); }
+      else showAuth();
+    });
+    client.auth.getSession().then(({data}) => {
+      if (data.session?.user) { currentUser=data.session.user; afterLogin().catch(showError); }
+      else showAuth();
+    });
+  }
+
+  $('configForm').addEventListener('submit', e => {
+    e.preventDefault();
+    const url = $('projectUrl').value.trim().replace(/\\/$/, '');
+    const key = $('anonKey').value.trim();
+    if (!url.startsWith('https://') || key.length < 20) {
+      setMsg($('configMsg'),'Revisá la dirección y la clave pública.','error'); return;
+    }
+    SUPABASE_URL = url; SUPABASE_ANON_KEY = key;
+    localStorage.setItem('mb_supabase_url', url);
+    localStorage.setItem('mb_supabase_anon_key', key);
+    setMsg($('configMsg'),'Configuración guardada. Conectando…','success');
+    startClient();
+  });
+
+  if (SUPABASE_URL && SUPABASE_ANON_KEY) startClient();
+  else {
+    $('setup').classList.remove('hidden');
+    $('connection').textContent='Falta configurar';
+    $('connection').style.background='#fff0d5'; $('connection').style.color='#75530a';
+  }
+
+  async function afterLogin() { showApp(); await loadMovements(); }
+  function showError(err) { setMsg($('appMsg'),err?.message || 'Hubo un error. Probá actualizar.','error'); }
+  async function loadMovements() {
+    if (!client || !currentUser) return;
+    $('connection').textContent='Sincronizando…';
+    const {data,error} = await client.from('movements').select('id,user_id,kind,amount,category,note,entry_date,created_at').order('entry_date',{ascending:false}).order('created_at',{ascending:false});
+    if (error) throw error;
+    movements = data || []; $('connection').textContent='Sincronizado'; renderDashboard(); renderRecords();
+    setMsg($('appMsg'),'');
+  }
+  async function addMovement(kind, amount, date, category, note) {
+    if (!currentUser) throw new Error('Iniciá sesión para guardar.');
+    const row = {user_id:currentUser.id,kind,amount:Number(amount),entry_date:date,category:category || null,note:note?.trim() || null};
+    const {error} = await client.from('movements').insert(row);
+    if (error) throw error;
+    await loadMovements();
+  }
+  $('incomeForm').addEventListener('submit', async e => {
+    e.preventDefault();
+    try { await addMovement('income',$('incomeAmount').value,$('incomeDate').value,null,$('incomeNote').value); $('incomeNote').value=''; setMsg($('appMsg'),'Corte guardado en la nube.','success'); }
+    catch(err) { showError(err); }
+  });
+  $('expenseForm').addEventListener('submit', async e => {
+    e.preventDefault();
+    try { await addMovement('expense',$('expenseAmount').value,$('expenseDate').value,$('expenseCategory').value,$('expenseNote').value); $('expenseAmount').value=''; $('expenseNote').value=''; setMsg($('appMsg'),'Gasto guardado en la nube.','success'); }
+    catch(err) { showError(err); }
+  });
+  document.querySelectorAll('[data-tab]').forEach(btn => btn.addEventListener('click', () => {
+    document.querySelectorAll('[data-tab]').forEach(b=>b.classList.toggle('active',b===btn));
+    document.querySelectorAll('.panel').forEach(p=>p.classList.add('hidden'));
+    $('panel-'+btn.dataset.tab).classList.remove('hidden');
+    if (btn.dataset.tab==='history') renderRecords();
+  }));
+  $('refresh').addEventListener('click',()=>loadMovements().catch(showError));
+  $('refreshBackup').addEventListener('click',async()=>{ try { await loadMovements(); setMsg($('backupMsg'),'Datos actualizados. Ya podés exportar.','success'); } catch(e) { setMsg($('backupMsg'),e.message,'error'); }});
+  $('filterPeriod').addEventListener('change',renderRecords); $('filterType').addEventListener('change',renderRecords);
+  function monthStart() { return `${today.getFullYear()}-${String(today.getMonth()+1).padStart(2,'0')}-01`; }
+  function renderDashboard() {
+    const m = localDate.slice(0,7);
+    const inMonth = movements.filter(x=>String(x.entry_date).startsWith(m));
+    const inc = inMonth.filter(x=>x.kind==='income').reduce((s,x)=>s+Number(x.amount),0);
+    const exp = inMonth.filter(x=>x.kind==='expense').reduce((s,x)=>s+Number(x.amount),0);
+    $('monthIncome').textContent=money(inc); $('monthExpense').textContent=money(exp); $('monthBalance').textContent=money(inc-exp);
+    $('monthBalance').className = inc-exp < 0 ? 'negative' : 'positive';
+    $('monthCuts').textContent=inMonth.filter(x=>x.kind==='income').length;
+  }
+  function renderRecords() {
+    if (!$('records')) return;
+    let list = [...movements];
+    const period = $('filterPeriod').value, type = $('filterType').value;
+    if (period==='month') list=list.filter(x=>String(x.entry_date).startsWith(localDate.slice(0,7)));
+    if (period==='7') { const d=new Date(); d.setDate(d.getDate()-6); const since=`${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,'0')}-${String(d.getDate()).padStart(2,'0')}`; list=list.filter(x=>x.entry_date>=since && x.entry_date<=localDate); }
+    if (type!=='all') list=list.filter(x=>x.kind===type);
+    if (!list.length) { $('records').innerHTML='<div class="empty">Todavía no hay movimientos para este filtro.</div>'; return; }
+    $('records').innerHTML=list.map(x=>`<div class="record"><div class="row"><div><div class="record-title">${x.kind==='income'?'✂️ Corte':'🧾 '+escapeHtml(x.category||'Gasto')}${x.note?' · '+escapeHtml(x.note):''}</div><div class="record-meta">${escapeHtml(x.entry_date)}${x.kind==='expense'&&x.category?' · '+escapeHtml(x.category):''}</div></div><div class="record-amount ${x.kind==='income'?'positive':'negative'}">${x.kind==='income'?'+':'−'}${money(x.amount)}</div></div><div class="actions"><button class="btn small danger" data-delete="${escapeHtml(x.id)}">Eliminar</button></div></div>`).join('');
+    $('records').querySelectorAll('[data-delete]').forEach(b=>b.addEventListener('click',async()=>{
+      if(!confirm('¿Eliminar este movimiento? Esta acción no se puede deshacer.')) return;
+      const {error}=await client.from('movements').delete().eq('id',b.dataset.delete).eq('user_id',currentUser.id);
+      if(error) showError(error); else { setMsg($('appMsg'),'Movimiento eliminado.','success'); await loadMovements(); }
+    }));
+  }
+  function download(filename, content, mime) {
+    const blob=new Blob([content],{type:mime}); const url=URL.createObjectURL(blob); const a=document.createElement('a'); a.href=url; a.download=filename; document.body.appendChild(a); a.click(); a.remove(); setTimeout(()=>URL.revokeObjectURL(url),1000);
+  }
+  $('exportJson').addEventListener('click',async()=>{
+    try { await loadMovements(); download(`mi-barberia-respaldo-${localDate}.json`,JSON.stringify({app:'Mi Barbería',exported_at:new Date().toISOString(),email:currentUser.email,movements},null,2),'application/json'); setMsg($('backupMsg'),'Copia JSON descargada. Guardala en Archivos o iCloud Drive.','success'); }
+    catch(e) { setMsg($('backupMsg'),e.message,'error'); }
+  });
+  $('exportCsv').addEventListener('click',async()=>{
+    try {
+      await loadMovements();
+      const rows=[['id','fecha','tipo','importe_ARS','categoria','nota'],...movements.map(x=>[x.id,x.entry_date,x.kind,x.amount,x.category||'',x.note||''])];
+      const csv=rows.map(r=>r.map(v=>`"${String(v).replace(/"/g,'""')}"`).join(';')).join('\r\n');
+      download(`mi-barberia-movimientos-${localDate}.csv`,'\ufeff'+csv,'text/csv;charset=utf-8'); setMsg($('backupMsg'),'CSV descargado. Podés abrirlo con Numbers o Excel.','success');
+    } catch(e) { setMsg($('backupMsg'),e.message,'error'); }
+  });
+  if ('serviceWorker' in navigator && location.protocol.startsWith('http')) {
+    window.addEventListener('load',()=>navigator.serviceWorker.register('./sw.js').catch(()=>{}));
+  }
+})();
+</script>
+</body>
+</html>
